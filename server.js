@@ -4,6 +4,7 @@
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
+const bodyParser = require('body-parser')
 
 /**
  * Load Neode with the variables stored in `.env` and tell neode to
@@ -20,11 +21,10 @@ const app = express();
 /**
  * SCRF for AJAX requests used in /recommend/:genre
  */
-app.use(function(req, res, next) {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
-    next();
-});
+app.use(bodyParser.urlencoded({
+    extended: true
+}));
+app.use(bodyParser.json());
 
 /**
  * Set up a simple Session
@@ -42,7 +42,6 @@ app.use(session({
  * Serve anything inside the ./public folder as a static resource
  */
 app.use(express.static('public'));
-
 /**
  * For examples of how to use Neode to quickly generate a REST API,
  * checkout the route examples in ./routes.api.js
