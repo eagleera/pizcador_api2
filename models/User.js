@@ -12,5 +12,11 @@ module.exports = {
     relationship: "CAN_DO",
     direction: "in",
     target: "UserRole"
+  },
+  "ranch": {
+    type: "relationship",
+    relationship: "TAKE_CARE_OF",
+    direction: "in",
+    target: "Ranch"
   }
 }

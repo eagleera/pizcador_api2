@@ -2,17 +2,10 @@ module.exports = function(neode) {
   const router = require("express").Router();
   const { check, validationResult } = require("express-validator");
   const bcrypt = require("bcrypt");
-  /**
-   * Use neode.all() to return a paginated list of movies
-   */
   router.get("/api/users", (req, res) => {
     neode
       .all("User")
       .then(res2 => {
-        /*
-         *`all` returns a NodeCollection - this has a toJson method that
-         * will convert all Nodes within the collection into a JSON object
-         */
         return res2.toJson();
       })
       .then(json => {
@@ -49,7 +42,6 @@ module.exports = function(neode) {
               return user.toJson();
             })
             .then(json => {
-              console.log(json);
               neode
                 .cypher("CALL dbms.security.createUser({id}, {password});", {
                   id: json.id,
@@ -69,24 +61,6 @@ module.exports = function(neode) {
         });
       }
     ),
-    router.post("/api/user_role", (req, res) => {
-      neode.merge("UserRole", {
-        name: "Reader"
-      });
-      neode.merge("UserRole", {
-        name: "Editor"
-      });
-      neode.merge("UserRole", {
-        name: "Publisher"
-      });
-      neode.merge("UserRole", {
-        name: "Architect"
-      });
-      neode.merge("UserRole", {
-        name: "Admin"
-      });
-      res.send("se armo");
-    }),
     router.get("/api/movies", (req, res) => {
       const order_by = req.query.order || "title";
       const sort = req.query.sort || "ASC";

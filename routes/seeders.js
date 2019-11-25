@@ -1,0 +1,35 @@
+module.exports = function(neode) {
+  const router = require("express").Router();
+  router.post("/api/user_role", (req, res) => {
+    neode.merge("UserRole", {
+      name: "Reader"
+    });
+    neode.merge("UserRole", {
+      name: "Editor"
+    });
+    neode.merge("UserRole", {
+      name: "Publisher"
+    });
+    neode.merge("UserRole", {
+      name: "Architect"
+    });
+    neode.merge("UserRole", {
+      name: "Admin"
+    });
+    res.send("se armo");
+  }),
+    router.post("/api/size_types", (req, res) => {
+      neode.merge("SizeType", {
+        name: "Hectarea",
+        unit: "ha"
+      });
+      neode.merge("SizeType", {
+        name: "Metros cuadrados",
+        unit: "m^2"
+      });
+      neode.merge("SizeType", {
+        name: "Pies cuadrados",
+        unit: "ft^2"
+      });
+    });
+};

@@ -47,6 +47,7 @@ app.use(express.static('public'));
  * checkout the route examples in ./routes.api.js
  */
 app.use(require('./routes/api')(neode));
+app.use(require('./routes/seeders')(neode));
 
 /**
  * Listen for requests on port 3000
