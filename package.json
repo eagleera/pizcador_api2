@@ -4,7 +4,7 @@
   "description": "An example project using Neode",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon server.js",
+    "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -31,9 +31,14 @@
     "express-session": "^1.15.6",
     "express-validator": "^6.3.0",
     "jade": "^1.11.0",
+    "jsonwebtoken": "^8.5.1",
     "neode": "^0.2.3"
   },
   "devDependencies": {
-    "eslint": "^4.8.0"
+    "eslint": "^4.8.0",
+    "@babel/core": "^7.2.2",
+    "@babel/polyfill": "^7.2.5",
+    "@babel/preset-env": "^7.2.3",
+    "@babel/register": "^7.0.0"
   }
 }

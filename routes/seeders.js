@@ -1,6 +1,6 @@
 module.exports = function(neode) {
   const router = require("express").Router();
-  router.post("/api/user_role", (req, res) => {
+  router.post("/user_role", (req, res) => {
     neode.merge("UserRole", {
       name: "Reader"
     });
@@ -18,7 +18,7 @@ module.exports = function(neode) {
     });
     res.send("se armo");
   }),
-    router.post("/api/size_types", (req, res) => {
+    router.post("/size_types", (req, res) => {
       neode.merge("SizeType", {
         name: "Hectarea",
         unit: "ha"
@@ -32,4 +32,5 @@ module.exports = function(neode) {
         unit: "ft^2"
       });
     });
+    return router;
 };

@@ -2,7 +2,7 @@ module.exports = function(neode) {
   const router = require("express").Router();
   const { check, validationResult } = require("express-validator");
   const bcrypt = require("bcrypt");
-  router.get("/api/users", (req, res) => {
+  router.get("/users", (req, res) => {
     neode
       .all("User")
       .then(res2 => {
@@ -16,7 +16,7 @@ module.exports = function(neode) {
       });
   }),
     router.post(
-      "/api/user",
+      "/user",
       [
         check("name").exists(),
         check("lastname").exists(),
@@ -61,7 +61,7 @@ module.exports = function(neode) {
         });
       }
     ),
-    router.get("/api/movies", (req, res) => {
+    router.get("/movies", (req, res) => {
       const order_by = req.query.order || "title";
       const sort = req.query.sort || "ASC";
       const limit = req.query.limit || 10;
@@ -94,7 +94,7 @@ module.exports = function(neode) {
    * Node: this isn't recommended as a long term solution as
    * Neo4j may reassign internal ID's
    */
-  router.get("/api/movies/~:id", (req, res) => {
+  router.get("/movies/~:id", (req, res) => {
     neode
       .findById("Movie", parseInt(req.params.id))
       .then(res => {
@@ -113,7 +113,7 @@ module.exports = function(neode) {
    * is defined in the Model definition by adding the
    * `"primary":true` key.
    */
-  router.get("/api/movies/:id", (req, res) => {
+  router.get("/movies/:id", (req, res) => {
     neode
       .find("Movie", req.params.id)
       .then(res => {
@@ -132,7 +132,7 @@ module.exports = function(neode) {
    *
    * Find actors in common between two movies
    */
-  router.get("/api/movies/:a_id/common/:b_id", (req, res) => {
+  router.get("/movies/:a_id/common/:b_id", (req, res) => {
     neode
       .cypher(
         "MATCH (a:Movie {id:{a_id}})<-[:DIRECTED]-(actor)-[:DIRECTED]->(b:Movie {id: {b_id}}) return a, b, actor",
@@ -166,6 +166,5 @@ module.exports = function(neode) {
         res.status(500).send(e.stack);
       });
   });
-
   return router;
 };
