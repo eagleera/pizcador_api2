@@ -5,7 +5,11 @@ const newSessionRoutes = [
   { path: "/session/login", method: "POST" },
   { path: "/", method: "GET" }
 ];
-const authRoutes = [{ path: "/user/password", method: "PUT" }];
+const authRoutes = [
+  { path: "/user/password", method: "PUT" },
+  { path: "/api/users", method: "GET" },
+  { path: "/session/me", method: "GET" }
+];
 const SECRET_KEY = "JWT_SECRET";
 
 export const clientApiKeyValidation = async (req, res, next) => {

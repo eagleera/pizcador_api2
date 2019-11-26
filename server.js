@@ -34,7 +34,6 @@ app.use(
   })
 );
 app.use(bodyParser.json());
-
 app.use(async (req, res, next) => {
   var apiUrl = req.originalUrl;
   var httpMethod = req.method;
@@ -44,6 +43,15 @@ app.use(async (req, res, next) => {
     req.newSessionRequired = true;
   } else if (isAuthRequired(httpMethod, apiUrl)) {
     let authHeader = req.header("Authorization");
+    if(!authHeader){
+      return res.status(401).send({
+        ok: false,
+        error: {
+          reason: "No Authorization Header",
+          code: 401
+        }
+      });
+    }
     let sessionID = authHeader.split(" ")[1];
     if (sessionID) {
       let userData = verifyToken(sessionID);
@@ -105,7 +113,6 @@ app.use("/session", sessionRoutes);
  * Listen for requests on port 3000
  */
 app.use((req, res, next) => {
-  console.log(req.data);
   if (!res.data) {
     return res.status(404).send({
       status: false,

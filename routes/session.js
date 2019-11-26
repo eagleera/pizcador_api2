@@ -1,9 +1,10 @@
 import { getUserDetails, updateUserPassword } from "../services/UserService";
 import bcrypt from "bcrypt";
+import { verifyToken } from "../common/authUtils";
+
 module.exports = function(neode) {
   const router = require("express").Router();
   router.post("/login", async (req, res, next) => {
-    console.log("hola");
     let email = req.body.email;
     let pwd = req.body.password;
     let userDetails = await getUserDetails(neode, email);
@@ -11,9 +12,7 @@ module.exports = function(neode) {
       let { password } = userDetails;
       bcrypt.compare(pwd, password, function(err, success) {
         if (success) {
-          console.log("se armo");
           res.data = userDetails;
-          console.log(res.data);
           req.session.userData = userDetails;
           next();
         } else {
@@ -34,6 +33,24 @@ module.exports = function(neode) {
       next();
     }
   }),
+    router.get("/me", async (req, res, next) => {
+      let authHeader = req.header("Authorization");
+      if(!authHeader){
+        return res.status(401).send({
+          ok: false,
+          error: {
+            reason: "No Authorization Header",
+            code: 401
+          }
+        });
+      }
+      let sessionID = authHeader.split(" ")[1];
+      if (sessionID) {
+        let userData = verifyToken(sessionID);
+        res.data = userData;
+        next();
+      }
+    }),
     router.put("/password", async (req, res, next) => {
       try {
         let oldPwd = req.body.old_password;

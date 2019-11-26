@@ -1,5 +1,5 @@
 module.exports = {
-  labels: ["User", "UserRole"],
+  labels: ["UserRole"],
   id: {
     type: "uuid",
     primary: true
