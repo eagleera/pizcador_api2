@@ -5,6 +5,8 @@ const express = require("express");
 const session = require("express-session");
 const path = require("path");
 const bodyParser = require("body-parser");
+const cors = require('cors')
+
 import {
   clientApiKeyValidation,
   isNewSessionRequired,
@@ -28,6 +30,7 @@ const app = express();
 /**
  * SCRF for AJAX requests used in /recommend/:genre
  */
+app.use(cors());
 app.use(
   bodyParser.urlencoded({
     extended: true
