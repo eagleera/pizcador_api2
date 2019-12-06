@@ -20,6 +20,7 @@ module.exports = {
     type: "relationship",
     relationship: "TAKE_CARE_OF",
     direction: "in",
-    target: "Ranch"
+    target: "Ranch",
+    eager: true
   }
 };

@@ -35,7 +35,7 @@ module.exports = function(neode) {
   }),
     router.get("/me", async (req, res, next) => {
       let authHeader = req.header("Authorization");
-      if(!authHeader){
+      if (!authHeader) {
         return res.status(401).send({
           ok: false,
           error: {
@@ -48,7 +48,39 @@ module.exports = function(neode) {
       if (sessionID) {
         let userData = verifyToken(sessionID);
         res.data = userData;
-        next();
+        let user_id = {
+          user_id: userData.id
+        };
+        neode
+          .cypher(
+            "MATCH (u:User {id:{user_id}})<-[:TAKE_CARE_OF]-(n) RETURN u, n",
+            user_id
+          )
+          .then(res => {
+            return Promise.all([
+              /**
+               * .hydrateFirst can be called to get the record with
+               * the alias provided in the first row, then return
+               * this object wrapped in a `Node` instance
+               */
+              neode.hydrateFirst(res, "u").toJson(),
+              neode.hydrateFirst(res, "n").toJson()
+            ]).then(([u, n]) => {
+              // Format into a friendly object
+              return { u, n };
+            });
+          })
+          .then(json => {
+            if (json.n) {
+              res.data.ranch = json.n;
+            } else {
+              res.data.ranch = null;
+            }
+            next();
+          })
+          .catch(e => {
+            res.status(500).send(e.stack);
+          });
       }
     }),
     router.put("/password", async (req, res, next) => {

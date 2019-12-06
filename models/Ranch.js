@@ -12,7 +12,10 @@ module.exports = {
     type: "relationship",
     relationship: "UNITS_IN",
     direction: "in",
-    target: "SizeType"
+    target: "SizeType",
+    properties: {
+      size: "number"
+    }
   },
   "take_care_of": {
     type: "relationship",

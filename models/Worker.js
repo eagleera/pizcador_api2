@@ -11,6 +11,12 @@ module.exports = {
       direction: "in",
       target: "Ranch"
     },
+    "role": {
+      type: "relationship",
+      relationship: "DOES",
+      direction: "in",
+      target: "WorkerRole"
+    },
     "is": {
       type: "relationship",
       relationship: "IS",

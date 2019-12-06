@@ -19,7 +19,41 @@ module.exports = function(neode) {
     res.data = "se armo";
     next();
   }),
-    router.post("/size_types", (req, res) => {
+    router.post("/worker_role", (req, res, next) => {
+      neode.merge("WorkerRole", {
+        name: "Jornalero"
+      });
+      neode.merge("WorkerRole", {
+        name: "Supervisor"
+      });
+      neode.merge("WorkerRole", {
+        name: "Gerente"
+      });
+      neode.merge("WorkerRole", {
+        name: "Dueño"
+      });
+      neode.merge("WorkerRole", {
+        name: "Velador"
+      });
+      neode.merge("WorkerRole", {
+        name: "Regador"
+      });
+      neode.merge("WorkerRole", {
+        name: "Encargado"
+      });
+      neode.merge("WorkerRole", {
+        name: "Pizcador"
+      });
+      neode.merge("WorkerRole", {
+        name: "Seleccionador"
+      });
+      neode.merge("WorkerRole", {
+        name: "Transportista"
+      });
+      res.data = "se armo";
+      next();
+    }),
+    router.post("/size_types", (req, res, next) => {
       neode.merge("SizeType", {
         name: "Hectarea",
         unit: "ha"
@@ -32,6 +66,8 @@ module.exports = function(neode) {
         name: "Pies cuadrados",
         unit: "ft^2"
       });
+      res.data = "se armo";
+      next();
     });
   return router;
 };

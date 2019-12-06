@@ -1,3 +1,5 @@
+import { verifyToken } from "../common/authUtils";
+
 module.exports = function(neode) {
   const router = require("express").Router();
   const { check, validationResult } = require("express-validator");
@@ -15,6 +17,123 @@ module.exports = function(neode) {
         res.status(500).send(e.stack);
       });
   }),
+    router.get("/workers", (req, res) => {
+      neode
+        .cypher("MATCH (w:Worker)<-[:DOES]-(n) RETURN w, n",)
+        .then(res => {
+          return Promise.all([
+            /**
+             * .hydrateFirst can be called to get the record with
+             * the alias provided in the first row, then return
+             * this object wrapped in a `Node` instance
+             */
+            neode.hydrate(res, "w").toJson(),
+            neode.hydrate(res, "n").toJson()
+          ]).then(([w, n]) => {
+            // Format into a friendly object
+            return { w, n };
+          });
+        })
+        .then(json => {
+          console.log(json);
+          let data = []
+          json.w.forEach((worker, index) => {
+            data.push({
+              worker: worker,
+              role: json.n[index]
+            });
+          })
+          console.log(data);
+          res.send(data);
+        })
+        .catch(e => {
+          res.status(500).send(e.stack);
+        });
+    }),
+    router.post(
+      "/worker",
+      [
+        check("name").exists(),
+        check("lastname").exists(),
+        check("ranch_id").exists(),
+        check("rol_id").exists()
+      ],
+      (req, res) => {
+        neode
+          .create("Worker", {
+            name: req.body.name,
+            lastname: req.body.lastname
+          })
+          .then(worker => {
+            neode.first("Ranch", { id: req.body.ranch_id }).then(ranch => {
+              worker.relateTo(ranch, "ranch");
+            });
+            neode.first("WorkerRole", { id: req.body.rol_id }).then(role => {
+              worker.relateTo(role, "role");
+            });
+            return worker.toJson();
+          })
+          .then(json => {
+            res.send(json);
+          })
+          .catch(e => {
+            res.status(500).send(e.stack);
+          });
+      }
+    ),
+    router.get("/size_type", (req, res) => {
+      neode
+        .all("SizeType")
+        .then(res2 => {
+          return res2.toJson();
+        })
+        .then(json => {
+          res.send(json);
+        })
+        .catch(e => {
+          res.status(500).send(e.stack);
+        });
+    }),
+    router.get("/roles", (req, res) => {
+      neode
+        .all("WorkerRole")
+        .then(res2 => {
+          return res2.toJson();
+        })
+        .then(json => {
+          res.send(json);
+        })
+        .catch(e => {
+          res.status(500).send(e.stack);
+        });
+    }),
+    router.post(
+      "/add_payment_role/:id",
+      [check("role").exists(), check("ranch_id").exists()],
+      (req, res) => {
+        let currentdate = new Date();
+        neode
+          .create("RolePayment", {
+            wage: req.body.role.cantidad,
+            init_date: currentdate
+          })
+          .then(rolePmnt => {
+            neode.first("WorkerRole", { id: req.body.role.id }).then(role => {
+              rolePmnt.relateTo(role, "role");
+            });
+            neode.first("Ranch", { id: req.body.ranch_id }).then(ranch => {
+              rolePmnt.relateTo(ranch, "ranch");
+            });
+            return rolePmnt.toJson();
+          })
+          .then(json => {
+            res.send(json);
+          })
+          .catch(e => {
+            res.status(500).send(e.stack);
+          });
+      }
+    ),
     router.post(
       "/user",
       [
@@ -59,6 +178,56 @@ module.exports = function(neode) {
               res.status(500).send(e.stack);
             });
         });
+      }
+    ),
+    router.post(
+      "/ranch",
+      [
+        check("address").exists(),
+        check("name").exists(),
+        check("size").isEmail(),
+        check("sizetype").exists()
+      ],
+      (req, res) => {
+        let authHeader = req.header("Authorization");
+        if (!authHeader) {
+          return res.status(401).send({
+            ok: false,
+            error: {
+              reason: "No Authorization Header",
+              code: 401
+            }
+          });
+        }
+        let sessionID = authHeader.split(" ")[1];
+        if (sessionID) {
+          let userData = verifyToken(sessionID);
+          neode
+            .create("Ranch", {
+              name: req.body.name,
+              address: req.body.address,
+              size: req.body.size,
+              zipcode: req.body.zipcode,
+              email: req.body.email
+            })
+            .then(ranch => {
+              console.log(userData);
+              neode.find("SizeType", req.body.sizetype).then(res => {
+                ranch.relateTo(res, "size_type", { size: req.body.size });
+              });
+              neode.find("User", userData.id).then(res => {
+                res.relateTo(ranch, "ranch");
+                console.log(res);
+              });
+              return ranch.toJson();
+            })
+            .then(json => {
+              res.send(json);
+            })
+            .catch(e => {
+              res.status(500).send(e.stack);
+            });
+        }
       }
     ),
     router.get("/movies", (req, res) => {
