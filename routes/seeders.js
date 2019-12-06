@@ -69,5 +69,51 @@ module.exports = function(neode) {
       res.data = "se armo";
       next();
     });
+  router.post("/crop_types", (req, res, next) => {
+    neode.merge("CropType", {
+      name: "Maíz"
+    });
+    neode.merge("CropType", {
+      name: "Nuez"
+    });
+    neode.merge("CropType", {
+      name: "Cebolla"
+    });
+    neode.merge("CropType", {
+      name: "Arroz"
+    });
+    neode.merge("CropType", {
+      name: "Frijol"
+    });
+    neode.merge("CropType", {
+      name: "Caña de azucar"
+    });
+    neode.merge("CropType", {
+      name: "Aguacate"
+    });
+    neode.merge("CropType", {
+      name: "Pasto"
+    });
+    neode.merge("CropType", {
+      name: "Sorgo"
+    });
+    neode.merge("CropType", {
+      name: "Chile"
+    });
+    neode.merge("CropType", {
+      name: "Tomate"
+    });
+    neode.merge("CropType", {
+      name: "Alfalfa"
+    });
+    neode.merge("CropType", {
+      name: "Trigo"
+    });
+    neode.merge("CropType", {
+      name: "Papa"
+    });
+    res.data = "se armo";
+    next();
+  });
   return router;
 };

@@ -17,32 +17,30 @@ module.exports = function(neode) {
         res.status(500).send(e.stack);
       });
   }),
-    router.get("/workers", (req, res) => {
+    router.get("/workers/:ranch_id", (req, res) => {
+      let ranch_id = {
+        ranch_id: req.params.ranch_id
+      }
       neode
-        .cypher("MATCH (w:Worker)<-[:DOES]-(n) RETURN w, n",)
+        .cypher("MATCH (:Ranch {id:{ranch_id}})-[:WORKS_AT]-(w)-[:DOES]-(n) RETURN w, n",
+        ranch_id)
         .then(res => {
           return Promise.all([
-            /**
-             * .hydrateFirst can be called to get the record with
-             * the alias provided in the first row, then return
-             * this object wrapped in a `Node` instance
-             */
             neode.hydrate(res, "w").toJson(),
             neode.hydrate(res, "n").toJson()
           ]).then(([w, n]) => {
-            // Format into a friendly object
             return { w, n };
           });
         })
         .then(json => {
           console.log(json);
-          let data = []
+          let data = [];
           json.w.forEach((worker, index) => {
             data.push({
               worker: worker,
               role: json.n[index]
             });
-          })
+          });
           console.log(data);
           res.send(data);
         })
@@ -81,9 +79,68 @@ module.exports = function(neode) {
           });
       }
     ),
+    router.post(
+      "/crop",
+      [
+        check("crop_type").exists(),
+        check("end_date").exists(),
+        check("init_date").exists(),
+        check("ranch_id").exists()
+      ],
+      (req, res) => {
+        let init_date = new Date(req.body.init_date);
+        let end_date = new Date(req.body.end_date);
+        neode
+          .create("Crop", {
+            init_date: init_date,
+            end_date: end_date
+          })
+          .then(crop => {
+            neode.first("Ranch", { id: req.body.ranch_id }).then(ranch => {
+              crop.relateTo(ranch, "ranch");
+            });
+            neode.first("CropType", { id: req.body.crop_type }).then(croptype => {
+              crop.relateTo(croptype, "crop_type");
+            });
+            return crop.toJson();
+          })
+          .then(json => {
+            res.send(json);
+          })
+          .catch(e => {
+            res.status(500).send(e.stack);
+          });
+      }
+    ),
     router.get("/size_type", (req, res) => {
       neode
         .all("SizeType")
+        .then(res2 => {
+          return res2.toJson();
+        })
+        .then(json => {
+          res.send(json);
+        })
+        .catch(e => {
+          res.status(500).send(e.stack);
+        });
+    }),
+    router.get("/crop_type", (req, res) => {
+      neode
+        .all("CropType")
+        .then(res2 => {
+          return res2.toJson();
+        })
+        .then(json => {
+          res.send(json);
+        })
+        .catch(e => {
+          res.status(500).send(e.stack);
+        });
+    }),
+    router.get("/crop", (req, res) => {
+      neode
+        .all("Crop")
         .then(res2 => {
           return res2.toJson();
         })
@@ -101,7 +158,35 @@ module.exports = function(neode) {
           return res2.toJson();
         })
         .then(json => {
-          res.send(json);
+          console.log(json);
+          neode
+            .cypher(
+              "MATCH (w:RolePayment)<-[:GET_PAID]-(n) RETURN w, n ORDER BY w.init_date"
+            )
+            .then(res => {
+              return Promise.all([
+                neode.hydrate(res, "w").toJson(),
+                neode.hydrate(res, "n").toJson()
+              ]).then(([w, n]) => {
+                return { w, n };
+              });
+            })
+            .then(res2 => {
+              json.forEach(rol => {
+                rol.payment = [];
+                res2.n.forEach((rolPmnt, indexPmnt) => {
+                  if (rol.id == rolPmnt.id) {
+                    rol.payment.push(res2.w[indexPmnt]);
+                  }
+                });
+                rol.payment = rol.payment.slice(-1)[0];
+              });
+              console.log(json);
+              res.send(json);
+            })
+            .catch(e => {
+              res.status(500).send(e.stack);
+            });
         })
         .catch(e => {
           res.status(500).send(e.stack);
@@ -309,11 +394,6 @@ module.exports = function(neode) {
       )
       .then(res => {
         return Promise.all([
-          /**
-           * .hydrateFirst can be called to get the record with
-           * the alias provided in the first row, then return
-           * this object wrapped in a `Node` instance
-           */
           neode.hydrateFirst(res, "a").toJson(),
           neode.hydrateFirst(res, "b").toJson(),
 

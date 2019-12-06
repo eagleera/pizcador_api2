@@ -3,6 +3,5 @@ module.exports = {
     type: "uuid",
     primary: true
   },
-  name: "string",
-  key: "string",
+  name: "string"
 };
