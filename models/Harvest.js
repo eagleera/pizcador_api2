@@ -3,7 +3,7 @@ module.exports = {
     type: "uuid",
     primary: true
   },
-  day: "datetime",
+  date: "datetime",
   amount: "float",
   ranch: {
     type: "relationship",

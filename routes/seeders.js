@@ -69,6 +69,22 @@ module.exports = function(neode) {
       res.data = "se armo";
       next();
     });
+  router.post("/day_types", (req, res, next) => {
+    neode.merge("DayType", {
+      name: "Tiempo completo",
+      value: 8
+    });
+    neode.merge("DayType", {
+      name: "Medio tiempo",
+      value: 4
+    });
+    neode.merge("DayType", {
+      name: "Sin asistencia",
+      value: 0
+    });
+    res.data = "se armo";
+    next();
+  });
   router.post("/crop_types", (req, res, next) => {
     neode.merge("CropType", {
       name: "Maíz"

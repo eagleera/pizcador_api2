@@ -17,13 +17,26 @@ module.exports = function(neode) {
         res.status(500).send(e.stack);
       });
   }),
-    router.get("/workers/:ranch_id", (req, res) => {
-      let ranch_id = {
-        ranch_id: req.params.ranch_id
-      }
+    router.get("/daytypes", (req, res) => {
       neode
-        .cypher("MATCH (:Ranch {id:{ranch_id}})-[:WORKS_AT]-(w)-[:DOES]-(n) RETURN w, n",
-        ranch_id)
+        .all("DayType")
+        .then(res2 => {
+          return res2.toJson();
+        })
+        .then(json => {
+          res.send(json);
+        })
+        .catch(e => {
+          res.status(500).send(e.stack);
+        });
+    }),
+    router.get("/workers", (req, res) => {
+      let userData = verifyToken(req.header("Authorization").split(" ")[1]);
+      neode
+        .cypher(
+          "MATCH (u:User {id: {id}})<-[:TAKE_CARE_OF]-(p)-[:WORKS_AT]-(w)-[:DOES]-(n) RETURN w,n",
+          userData
+        )
         .then(res => {
           return Promise.all([
             neode.hydrate(res, "w").toJson(),
@@ -33,7 +46,6 @@ module.exports = function(neode) {
           });
         })
         .then(json => {
-          console.log(json);
           let data = [];
           json.w.forEach((worker, index) => {
             data.push({
@@ -41,7 +53,6 @@ module.exports = function(neode) {
               role: json.n[index]
             });
           });
-          console.log(data);
           res.send(data);
         })
         .catch(e => {
@@ -80,6 +91,62 @@ module.exports = function(neode) {
       }
     ),
     router.post(
+      "/attendance",
+      [
+        check("crop_id").exists(),
+        check("date").exists(),
+        check("workers").exists()
+      ],
+      (req, res) => {
+        let date = new Date(req.body.date);
+        neode
+          .create("Attendance", {
+            date: date
+          })
+          .then(attendance => {
+            neode.first("Crop", { id: req.body.crop_id }).then(crop => {
+              attendance.relateTo(crop, "crop");
+            });
+            req.body.workers.forEach(worker => {
+              neode.first("Worker", { id: worker.worker.id }).then(workerNeo => {
+                attendance.relateTo(workerNeo, "worker_id", {
+                  payment: worker.rol.payment.id,
+                  daytype: worker.daytype
+                });
+              });
+            });
+            return attendance.toJson();
+          })
+          .then(json => {
+            res.send(json);
+          })
+          .catch(e => {
+            res.status(500).send(e.stack);
+          });
+      }
+      //   neode
+      //     .create("Worker", {
+      //       name: req.body.name,
+      //       lastname: req.body.lastname
+      //     })
+      //     .then(worker => {
+      //       neode.first("Ranch", { id: req.body.ranch_id }).then(ranch => {
+      //         worker.relateTo(ranch, "ranch");
+      //       });
+      //       neode.first("WorkerRole", { id: req.body.rol_id }).then(role => {
+      //         worker.relateTo(role, "role");
+      //       });
+      //       return worker.toJson();
+      //     })
+      //     .then(json => {
+      //       res.send(json);
+      //     })
+      //     .catch(e => {
+      //       res.status(500).send(e.stack);
+      //     });
+      // }
+    ),
+    router.post(
       "/crop",
       [
         check("crop_type").exists(),
@@ -99,10 +166,43 @@ module.exports = function(neode) {
             neode.first("Ranch", { id: req.body.ranch_id }).then(ranch => {
               crop.relateTo(ranch, "ranch");
             });
-            neode.first("CropType", { id: req.body.crop_type }).then(croptype => {
-              crop.relateTo(croptype, "crop_type");
-            });
+            neode
+              .first("CropType", { id: req.body.crop_type })
+              .then(croptype => {
+                crop.relateTo(croptype, "crop_type");
+              });
             return crop.toJson();
+          })
+          .then(json => {
+            res.send(json);
+          })
+          .catch(e => {
+            res.status(500).send(e.stack);
+          });
+      }
+    ),
+    router.post(
+      "/harvest",
+      [
+        check("date").exists(),
+        check("amount").exists(),
+        check("crop").exists()
+      ],
+      (req, res) => {
+        let date = new Date(req.body.date);
+        neode
+          .create("Harvest", {
+            date: date,
+            amount: req.body.amount
+          })
+          .then(harvest => {
+            neode.first("Ranch", { id: req.body.ranch_id }).then(ranch => {
+              harvest.relateTo(ranch, "ranch");
+            });
+            neode.first("Crop", { id: req.body.crop }).then(crop => {
+              harvest.relateTo(crop, "crop");
+            });
+            return harvest.toJson();
           })
           .then(json => {
             res.send(json);
@@ -139,29 +239,73 @@ module.exports = function(neode) {
         });
     }),
     router.get("/crop", (req, res) => {
+      let userData = verifyToken(req.header("Authorization").split(" ")[1]);
       neode
-        .all("Crop")
-        .then(res2 => {
-          return res2.toJson();
+        .cypher(
+          "MATCH (u:User {id: {id}})<-[:TAKE_CARE_OF]-(p)-[:AT]-(w)-[:OF]-(n) RETURN w,n",
+          userData
+        )
+        .then(res => {
+          return Promise.all([
+            neode.hydrate(res, "w").toJson(),
+            neode.hydrate(res, "n").toJson()
+          ]).then(([w, n]) => {
+            return { w, n };
+          });
         })
-        .then(json => {
-          res.send(json);
+        .then(res2 => {
+          let data = [];
+          res2.w.forEach((crop, index) => {
+            crop.type = res2.n[index];
+            data.push(crop);
+          });
+          res.send(data);
+        })
+        .catch(e => {
+          res.status(500).send(e.stack);
+        });
+    }),
+    router.get("/harvest", (req, res) => {
+      let userData = verifyToken(req.header("Authorization").split(" ")[1]);
+      neode
+        .cypher(
+          "MATCH (u:User {id: {id}})<-[:TAKE_CARE_OF]-(p)-[:AT]-(w)-[:ON]-(n) RETURN w,n",
+          userData
+        )
+        .then(res => {
+          return Promise.all([
+            neode.hydrate(res, "w").toJson(),
+            neode.hydrate(res, "n").toJson()
+          ]).then(([w, n]) => {
+            return { w, n };
+          });
+        })
+        .then(res2 => {
+          let data = [];
+          console.log(res2);
+          res2.w.forEach((harvest, index) => {
+            harvest.crop = res2.n[index];
+            data.push(harvest);
+          });
+          console.log(data);
+          res.send(data);
         })
         .catch(e => {
           res.status(500).send(e.stack);
         });
     }),
     router.get("/roles", (req, res) => {
+      let userData = verifyToken(req.header("Authorization").split(" ")[1]);
       neode
         .all("WorkerRole")
         .then(res2 => {
           return res2.toJson();
         })
         .then(json => {
-          console.log(json);
           neode
             .cypher(
-              "MATCH (w:RolePayment)<-[:GET_PAID]-(n) RETURN w, n ORDER BY w.init_date"
+              "MATCH (u:User {id: {id}})<-[:TAKE_CARE_OF]-(p)-[:AT]-(w)-[:GET_PAID]-(n) RETURN w,n ORDER BY w.init_date",
+              userData
             )
             .then(res => {
               return Promise.all([
@@ -181,7 +325,6 @@ module.exports = function(neode) {
                 });
                 rol.payment = rol.payment.slice(-1)[0];
               });
-              console.log(json);
               res.send(json);
             })
             .catch(e => {
@@ -296,13 +439,11 @@ module.exports = function(neode) {
               email: req.body.email
             })
             .then(ranch => {
-              console.log(userData);
               neode.find("SizeType", req.body.sizetype).then(res => {
                 ranch.relateTo(res, "size_type", { size: req.body.size });
               });
               neode.find("User", userData.id).then(res => {
                 res.relateTo(ranch, "ranch");
-                console.log(res);
               });
               return ranch.toJson();
             })
@@ -314,106 +455,6 @@ module.exports = function(neode) {
             });
         }
       }
-    ),
-    router.get("/movies", (req, res) => {
-      const order_by = req.query.order || "title";
-      const sort = req.query.sort || "ASC";
-      const limit = req.query.limit || 10;
-      const page = req.query.page || 1;
-      const skip = (page - 1) * limit;
-
-      const params = {};
-      const order = { [order_by]: sort };
-
-      neode
-        .all("Movie", params, order, limit, skip)
-        .then(res => {
-          /*
-           *`all` returns a NodeCollection - this has a toJson method that
-           * will convert all Nodes within the collection into a JSON object
-           */
-          return res.toJson();
-        })
-        .then(json => {
-          res.send(json);
-        })
-        .catch(e => {
-          res.status(500).send(e.stack);
-        });
-    });
-
-  /**
-   * Use `findById` to get a movie by it's internal Node ID.
-   *
-   * Node: this isn't recommended as a long term solution as
-   * Neo4j may reassign internal ID's
-   */
-  router.get("/movies/~:id", (req, res) => {
-    neode
-      .findById("Movie", parseInt(req.params.id))
-      .then(res => {
-        return res.toJson();
-      })
-      .then(json => {
-        res.send(json);
-      })
-      .catch(e => {
-        res.status(500).send(e.stack);
-      });
-  });
-
-  /**
-   * Use `find` to get a movie by it's primary key.  The primary key
-   * is defined in the Model definition by adding the
-   * `"primary":true` key.
-   */
-  router.get("/movies/:id", (req, res) => {
-    neode
-      .find("Movie", req.params.id)
-      .then(res => {
-        return res.toJson();
-      })
-      .then(json => {
-        res.send(json);
-      })
-      .catch(e => {
-        res.status(500).send(e.stack);
-      });
-  });
-
-  /**
-   * Run a more complex cypher query based on two parameter inputs.
-   *
-   * Find actors in common between two movies
-   */
-  router.get("/movies/:a_id/common/:b_id", (req, res) => {
-    neode
-      .cypher(
-        "MATCH (a:Movie {id:{a_id}})<-[:DIRECTED]-(actor)-[:DIRECTED]->(b:Movie {id: {b_id}}) return a, b, actor",
-        req.params
-      )
-      .then(res => {
-        return Promise.all([
-          neode.hydrateFirst(res, "a").toJson(),
-          neode.hydrateFirst(res, "b").toJson(),
-
-          /**
-           * The `.hydrate()` function will return a `NodeCollection`
-           * containing all Nodes from the resultset that have this alias
-           */
-          neode.hydrate(res, "actor").toJson()
-        ]).then(([a, b, actors]) => {
-          // Format into a friendly object
-          return { a, b, actors };
-        });
-      })
-      .then(json => {
-        // Return a JSON response
-        res.send(json);
-      })
-      .catch(e => {
-        res.status(500).send(e.stack);
-      });
-  });
+    );
   return router;
 };
