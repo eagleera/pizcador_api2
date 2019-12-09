@@ -124,28 +124,33 @@ module.exports = function(neode) {
             res.status(500).send(e.stack);
           });
       }
-      //   neode
-      //     .create("Worker", {
-      //       name: req.body.name,
-      //       lastname: req.body.lastname
-      //     })
-      //     .then(worker => {
-      //       neode.first("Ranch", { id: req.body.ranch_id }).then(ranch => {
-      //         worker.relateTo(ranch, "ranch");
-      //       });
-      //       neode.first("WorkerRole", { id: req.body.rol_id }).then(role => {
-      //         worker.relateTo(role, "role");
-      //       });
-      //       return worker.toJson();
-      //     })
-      //     .then(json => {
-      //       res.send(json);
-      //     })
-      //     .catch(e => {
-      //       res.status(500).send(e.stack);
-      //     });
-      // }
     ),
+    router.get("/attendance", (req, res) => {
+      let userData = verifyToken(req.header("Authorization").split(" ")[1]);
+      let init_date = new Date(req.query.init_date);
+      let end_date = new Date(req.query.end_date);
+      console.log(userData);
+      neode
+        .cypher(
+          "MATCH (u:User {id: {id}})<-[:TAKE_CARE_OF]-(p)-[:WORKS_AT]-(w)-[a:ATTEND]-(n) RETURN a,w,n",
+          userData
+        )
+        .then(res => {
+          return Promise.all([
+            neode.hydrate(res, "w").toJson(),
+            neode.hydrate(res, "n").toJson()
+          ]).then(([w, n]) => {
+            return {w, n };
+          });
+        })
+        .then(json => {
+          console.log(json)
+          res.send(json);
+        })
+        .catch(e => {
+          res.status(500).send(e.stack);
+        });
+    }),
     router.post(
       "/crop",
       [
@@ -405,6 +410,42 @@ module.exports = function(neode) {
             .catch(e => {
               res.status(500).send(e.stack);
             });
+        });
+      }
+    ),
+    router.patch(
+      "/ranch",
+      [
+        check("ranch_id").exists()
+      ],
+      (req, res) => {
+        neode.find("Ranch", req.body.ranch_id).then(ranch => {
+          ranch.update({
+            address: req.body.address ? req.body.address : ranch.address,
+            name: req.body.name ? req.body.name : ranch.name,
+            zipcode: req.body.zipcode ? req.body.zipcode : ranch.zipcode,
+          });
+          return ranch.toJson();
+        }).then((json) => {
+          res.send(json);
+        }).catch(e => {
+          res.status(500).send(e.stack);
+        });
+      }
+    ),
+    router.delete(
+      "/ranch",
+      [
+        check("ranch_id").exists()
+      ],
+      (req, res) => {
+        neode.find("Ranch", req.body.ranch_id).then(ranch => {
+          ranch.delete();
+          return ranch.toJson();
+        }).then((json) => {
+          res.send(json);
+        }).catch(e => {
+          res.status(500).send(e.stack);
         });
       }
     ),

@@ -85,6 +85,50 @@ module.exports = function(neode) {
     res.data = "se armo";
     next();
   });
+  router.post("/activity_types", (req, res, next) => {
+    neode.merge("ActivityType", {
+      name: "Mantenimiento",
+      value: 8
+    });
+    neode.merge("ActivityType", {
+      name: "Fertilización",
+      value: 4
+    });
+    neode.merge("ActivityType", {
+      name: "Riego",
+      value: 0
+    });
+    neode.merge("ActivityType", {
+      name: "Extras",
+      value: 0
+    });
+    neode.merge("ActivityType", {
+      name: "Aplicación de nutrientes",
+      value: 0
+    });
+    res.data = "se armo";
+    next();
+  });
+  router.post("/activity_status", (req, res, next) => {
+    neode.merge("ActivityStatus", {
+      name: "Terminado",
+      value: 8
+    });
+    neode.merge("ActivityStatus", {
+      name: "Por hacer",
+      value: 4
+    });
+    neode.merge("ActivityStatus", {
+      name: "En progreso",
+      value: 0
+    });
+    neode.merge("ActivityStatus", {
+      name: "Con problemas",
+      value: 0
+    });
+    res.data = "se armo";
+    next();
+  });
   router.post("/crop_types", (req, res, next) => {
     neode.merge("CropType", {
       name: "Maíz"
