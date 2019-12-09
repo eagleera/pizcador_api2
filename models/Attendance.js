@@ -3,7 +3,7 @@ module.exports = {
     type: "uuid",
     primary: true
   },
-  date: "datetime",
+  date: "date",
   worker_id: {
     type: "relationship",
     target: "Worker",

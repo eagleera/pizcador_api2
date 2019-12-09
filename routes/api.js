@@ -30,6 +30,42 @@ module.exports = function(neode) {
           res.status(500).send(e.stack);
         });
     }),
+    router.get("/activities", (req, res) => {
+      neode
+        .all("ActivityType")
+        .then(res2 => {
+          return res2.toJson();
+        })
+        .then(json => {
+          res.send(json);
+        })
+        .catch(e => {
+          res.status(500).send(e.stack);
+        });
+    }),
+    router.get("/activity", (req, res) => {
+      let userData = verifyToken(req.header("Authorization").split(" ")[1]);
+      neode
+        .cypher(
+          "MATCH (u:User {id: {id}})<-[:CREATED_BY]-(w)-[]-(n) RETURN w, n",
+          userData
+        )
+        .then(res => {
+          return Promise.all([
+            neode.hydrate(res, "w").toJson(),
+            neode.hydrate(res, "n").toJson()
+          ]).then(([w, n]) => {
+            return { w, n };
+          });
+        })
+        .then(json => {
+          console.log(json)
+          res.send(json);
+        })
+        .catch(e => {
+          res.status(500).send(e.stack);
+        });
+    }),
     router.get("/workers", (req, res) => {
       let userData = verifyToken(req.header("Authorization").split(" ")[1]);
       neode
@@ -127,18 +163,17 @@ module.exports = function(neode) {
     ),
     router.get("/attendance", (req, res) => {
       let userData = verifyToken(req.header("Authorization").split(" ")[1]);
-      let init_date = new Date(req.query.init_date);
-      let end_date = new Date(req.query.end_date);
-      console.log(userData);
+      userData.init_date = req.query.init_date.split("T")[0];
+      userData.end_date = req.query.end_date.split("T")[0];
       neode
         .cypher(
-          "MATCH (u:User {id: {id}})<-[:TAKE_CARE_OF]-(p)-[:WORKS_AT]-(w)-[a:ATTEND]-(n) RETURN a,w,n",
+          "MATCH (u:User {id: {id}})<-[:TAKE_CARE_OF]-(p)-[:WORKS_AT]-(w)-[a:ATTEND]-(n) WHERE n.date >= date({init_date}) AND n.date <= date({end_date}) RETURN a,w,n",
           userData
         )
-        .then(res => {
+        .then(res2 => {
           return Promise.all([
-            neode.hydrate(res, "w").toJson(),
-            neode.hydrate(res, "n").toJson()
+            neode.hydrate(res2, "w").toJson(),
+            neode.hydrate(res2, "n").toJson()
           ]).then(([w, n]) => {
             return {w, n };
           });
@@ -208,6 +243,51 @@ module.exports = function(neode) {
               harvest.relateTo(crop, "crop");
             });
             return harvest.toJson();
+          })
+          .then(json => {
+            res.send(json);
+          })
+          .catch(e => {
+            res.status(500).send(e.stack);
+          });
+      }
+    ),
+    router.post(
+      "/activity",
+      [
+        check("date").exists(),
+        check("name").exists(),
+        check("description").exists(),
+        check("activity_id").exists(),
+        check("crop_id").exists(),
+        check("worker_id").exists()
+      ],
+      (req, res) => {
+        let userData = verifyToken(req.header("Authorization").split(" ")[1]);
+        let date = new Date(req.body.date);
+        neode
+          .create("Activity", {
+            date: date,
+            name: req.body.name,
+            description: req.body.description,
+          })
+          .then(activity => {
+            neode.first("Crop", { id: req.body.crop_id }).then(crop => {
+              activity.relateTo(crop, "crop");
+            });
+            neode.first("Worker", { id: req.body.worker_id }).then(worker => {
+              activity.relateTo(worker, "in_charge");
+            });
+            neode.first("User", { id: userData.id }).then(user => {
+              activity.relateTo(user, "created_by");
+            });
+            neode.first("ActivityType", { id: req.body.activity_id }).then(activityType => {
+              activity.relateTo(activityType, "activity_type");
+            });
+            neode.first("ActivityStatus", { name: "Por hacer" }).then(activityStatus => {
+              activity.relateTo(activityStatus, "activity_status");
+            });
+            return activity.toJson();
           })
           .then(json => {
             res.send(json);

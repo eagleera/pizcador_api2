@@ -5,7 +5,7 @@ module.exports = {
     },
     name: "string",
     description: "string",
-    date: "datetime",
+    date: "date",
     created_by:{
         type: "relationship",
         target: "User",
@@ -14,7 +14,7 @@ module.exports = {
     },
     in_charge:{
         type: "relationship",
-        target: "User",
+        target: "Worker",
         relationship: "IN_CHARGE",
         direction: "out"
     },
@@ -30,16 +30,10 @@ module.exports = {
         relationship: "TYPE_OF",
         direction: "out"
     },
-    ranch: {
+    crop: {
       type: "relationship",
-      target: "Ranch",
-      relationship: "AT",
-      direction: "out"
-    },
-    crop_type: {
-      type: "relationship",
-      target: "CropType",
-      relationship: "OF",
+      target: "Crop",
+      relationship: "CROP_OF",
       direction: "out"
     }
   };
